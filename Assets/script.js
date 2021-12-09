@@ -35,16 +35,16 @@ function currentWeather(city){
         method: "GET",
     }).then(function(response){
         console.log(response)
-        var date = new Date(response.dt*1000).toLocalDateString()
+        var date = moment().format("dddd, MMMM Do YYYY" )
+        var iconUrl = "https://openweathermap.org/img/wn/" + response.weather[0].icon + ".png"
         $(currentCity).html(response.name + "("+date+")" + "<img src="+iconUrl+">")
         var tempF =(response.main.temp -273.15) * 1.80 + 32
         $(currentTemperature).html((tempF).toFixed(2) + "&#8457")
         $(currentHumidity).html(response.main.humidity + "%")
-        var ws = response.wind.currentWindSpeed
-        var windsMph =(ws*2.237).toFixed(1)
-        $(currentWindSpeed).html(windsMph + "MPH")
+        var ws = Math.floor(response.wind.speed)
+        $(currentWindSpeed).html(ws + "MPH")
 
-        currentUVIndex(response.coord.lon, response.coord.lat)
+        assignUV(response.coord.lon, response.coord.lat)
         
         forecast(response.id)
         if(response.cod==200){
@@ -68,7 +68,7 @@ function currentWeather(city){
     })
 }
 
-function UVIndex(ln, lt) {
+function assignUV(ln, lt) {
     var uvqURL="https://api.openweathermap.org/data/2.5/uvi?appid="+ APIKey+"&lat="+lt+"&lon="+ln;
     $.ajax({
         url:uvqURL,
@@ -85,18 +85,21 @@ function forecast(cityID){
         url:queryForecastURL,
         method: "GET"
     }).then(function(response){
+        console.log(response)
         for (i = 0; i<5; i++){
-            var date = new Date((response.list[((i+1)*8)-1].dt)*1000).toLocalDateString()
-            var iconCode = response.list[((i + 1)*8)-1].weather[0].icon
+            var date = moment().add(i +1, "days").format("L")
+            var iconCode = response.list[i + 1].weather[0].icon
             var iconUrl="https://openweathermap.org/img/wn/"+iconCode+".png"
-            var tempK = response.list[((i+1)*8)-1].main.temp
+            var tempK = response.list[i + 1].main.temp
             var tempF = (((tempK-273.5)*1.8)+32).toFixed(2)
-            var humidity = response.list[((i + 1)*8)-1].main.humidity
+            var humidity = response.list[i + 1].main.humidity
+            var wind = response.list[i+1].wind.speed
 
             $("#fDate" + i).html(date)
             $("#fImg" + i).html("<img src ="+iconUrl + ">")
-            $("#fTemp" +i).html(tempF + "#8457")
+            $("#fTemp" +i).html(tempF + "&#8457")
             $("#fHumidity" + i).html(humidity + "%")
+            $("#fWind" +i).html(wind)
         }
     })
 }
@@ -119,7 +122,7 @@ function invokePastSearch(event){
 function loadLastCity(){
     $("ul").empty()
     var sCity = JSON.parse(localStorage.getItem("cityName"))
-    if (sCity == null ){
+    if (sCity !== null ){
         sCity = JSON.parse(localStorage.getItem("cityName"))
         for(i = 0; i<sCity.length; i++){
             addToList(sCity[i])
